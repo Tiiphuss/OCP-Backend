@@ -19,18 +19,6 @@ exports.createBook = async (req, res, next) => {
   delete bookObject._id;
   delete bookObject._userId;
   await sharp(req.file.path).resize(500).jpeg({quality:80}).toFile(req.file.destination,"resized",req.file.filename).then(() => {fs.unlinkSync(req.file.path)}).catch((error) => console.log(error))
-  // const image = sharp('_4_.jpg')
-  // const meta = image.metadata()
-  // const { format } = meta
-  
-  // const config = {
-  //   jpeg: { quality: 80 },
-  //   webp: { quality: 80 },
-  //   png: { compressionLevel: 8 },
-  // }
-  
-  // image[format](config[format])
-  //   .resize(1000)
   
   const book = new Book({
       ...bookObject,
@@ -83,3 +71,29 @@ exports.deleteBook = (req, res, next) => {
           res.status(500).json({ error });
       });
 };
+
+exports.bookRating = (req, res, next) => {
+    const userId = req.body.userId
+    const rating = req.body.rating
+    Book.findById(req.params.id)
+    .then ((book) => {
+        if (!book) {return res.status(404).json({message: "Le livre n'a pas été trouvé"})}
+        if (book.ratings.find((rating) => rating.userId = req.body.userId)) {return res.status(400).json({message: "Vous avez deja notez ce livre"})}
+        else {
+            book.ratings.push({userId: userId, grade: rating})
+            const totalRatings = book.ratings.length
+            const sumRatings = book.ratings.reduce((sum,rating) => sum + rating.grade,0)
+            book.averageRating = sumRatings / totalRatings
+            book.save()
+            .then((book) => res.status(200).json(book))
+            .catch(error => res.status(400).json({ error })) 
+            }
+    })
+    .catch (error => res.status(500).json({ error }))
+}
+
+exports.getBestBooks = (req, res, next) => {
+    Book.find().sort({averageRating : -1}).limit(3)
+    .then((books) => res.status(200).json(books))
+    .catch(error => res.status(500).json({ error }))
+}
