@@ -23,7 +23,7 @@ exports.createBook = async (req, res, next) => {
   const book = new Book({
       ...bookObject,
       userId: req.auth.userId,
-      imageUrl: `${req.protocol}://${req.get('host')}/images/resized/${req.file.filename}`
+      imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
   });
 
   book.save()
@@ -78,12 +78,12 @@ exports.bookRating = (req, res, next) => {
     Book.findById(req.params.id)
     .then ((book) => {
         if (!book) {return res.status(404).json({message: "Le livre n'a pas été trouvé"})}
-        if (book.ratings.find((rating) => rating.userId = req.body.userId)) {return res.status(400).json({message: "Vous avez deja notez ce livre"})}
+        if (book.ratings.find((rating) => rating.userId === req.body.userId)) {return res.status(400).json({message: "Vous avez deja notez ce livre"})}
         else {
             book.ratings.push({userId: userId, grade: rating})
             const totalRatings = book.ratings.length
-            const sumRatings = book.ratings.reduce((sum,rating) => sum + rating.grade,0)
-            book.averageRating = sumRatings / totalRatings
+            const sumRatings = book.ratings.reduce((sum,rating) => sum + rating.grade, 0)
+            book.averageRating = Math.round (sumRatings / totalRatings)
             book.save()
             .then((book) => res.status(200).json(book))
             .catch(error => res.status(400).json({ error })) 
