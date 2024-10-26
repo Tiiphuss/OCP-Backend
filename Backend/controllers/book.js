@@ -32,17 +32,30 @@ exports.createBook = async (req, res, next) => {
 };
 
 exports.modifyBook = (req, res, next) => {
-  const bookObject = req.file ? {
+// if (req.params.id == req.body.userId ) {
+// if (req.body.userId == req.params) {
+const bookObject = req.file ? {
       ...JSON.parse(req.body.book),
       imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
   } : { ...req.body };
 
+    // const bookMaj = Book.findOne({_id: req.params.id})
+    // bookObject.userId = req.auth.userId
+    // const AutorizedUser = bookMaj.userId === req.auth.userId
+
+//   if (!AutorizedUser) {return res.status(403).json({ message : "Not authorized"})}
+
   delete bookObject._userId;
   Book.findOne({_id: req.params.id})
       .then((book) => {
-          if (book.userId != req.auth.userId) {
-              res.status(401).json({ message : 'Not authorized'});
+        if (book.userId != req.auth.userId) {
+        res.status(401).json({ message : 'Not authorized'});
           } else {
+            if (req.body.author == "") {return res.status(400).json({message : 'Champ Auteur vide' })}
+            if (req.body.genre == "") {return res.status(400).json({message : 'Champ Genre vide' })}
+            if (req.body.title == "") {return res.status(400).json({message : 'Champ Titre vide' })}
+            if (req.body.year == "") {return res.status(400).json({message : 'Champ Année de publication vide' })}
+
               Book.updateOne({ _id: req.params.id}, { ...bookObject, _id: req.params.id})
               .then(() => res.status(200).json({message : 'Objet modifié!'}))
               .catch(error => res.status(401).json({ error }));
@@ -51,6 +64,7 @@ exports.modifyBook = (req, res, next) => {
       .catch((error) => {
           res.status(400).json({ error });
       });
+    // } else {res.status(403).json({message : 'Interdit'})}
 };
 
 exports.deleteBook = (req, res, next) => {
@@ -86,8 +100,12 @@ exports.bookRating = (req, res, next) => {
             book.averageRating = Math.round (sumRatings / totalRatings)
             book.save()
             .then((book) => res.status(200).json(book))
-            .catch(error => res.status(400).json({ error })) 
-            }
+            .catch(error => res.status(400).json({ error }))
+            } 
+            // if (req.body.rating != "") {
+            // book.id = req.params.id
+            // getBestBooks(book.id)
+            // }
     })
     .catch (error => res.status(500).json({ error }))
 }
